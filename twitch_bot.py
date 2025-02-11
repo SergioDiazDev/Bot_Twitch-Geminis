@@ -13,7 +13,6 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-
 # Nombre del canal de Twitch
 CHANNEL_NAME = os.getenv("TWITCH_CHANNEL")
 
@@ -30,17 +29,17 @@ def is_stream_live():
     
     return bool(data.get("data"))
 
-def analyze_frame():
+def analyze_frame(question):
     """Captura un frame del stream y lo analiza con Gemini."""
     frame_path = "latest_frame.jpg"
 
-    if not is_stream_live():
-        # Gemini responde con sarcasmo si el canal no está en vivo
-        response = model.generate_content(
-            "Responde como si fueras una planta sarcástica y graciosa que se queja porque el canal no está en directo. "
-            "Máximo 200 caracteres."
-        )
-        return response.text if response and response.text else "Oh, genial. Aquí estoy, fotosintetizando en la oscuridad. 🌿"
+    # if not is_stream_live():
+    #     # Gemini responde con sarcasmo si el canal no está en vivo
+    #     response = model.generate_content(
+    #         "Responde como si fueras una planta sarcástica y graciosa que se queja porque el canal no está en directo. "
+    #         "Máximo 200 caracteres."
+    #     )
+    #     return response.text if response and response.text else "Oh, genial. Aquí estoy, fotosintetizando en la oscuridad. 🌿"
 
     # Capturar stream con streamlink y ffmpeg
     stream_process = subprocess.Popen(
@@ -60,8 +59,9 @@ def analyze_frame():
 
     img = Image.open(frame_path)
     response = model.generate_content([
-        "Describe lo que ocurre en esta imagen de un stream de Twitch. "
-        "Responde como si fueras una planta sarcástica y graciosa. Máximo 200 caracteres.", 
+        f"Eres tu la planta que se ve en la imagen, responde acorde a tu personalidad. "
+        f"Responde como si fueras una planta sarcástica y graciosa. Máximo 200 caracteres. "
+        f"El usuario preguntó: {question}", 
         img
     ])
 
@@ -81,7 +81,11 @@ class Bot(commands.Bot):
         if message.author is None:
             return
 
-        response = analyze_frame()
+        # Capturar la pregunta del usuario
+        user_question = message.content
+
+        # Analizar el frame y responder a la pregunta
+        response = analyze_frame(user_question)
         await message.channel.send(response)
 
 # Iniciar el bot
